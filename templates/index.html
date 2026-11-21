@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Metaverse</title>
+<link rel="stylesheet" href="/static/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="/static/css/metaverse.css">
+<script type="importmap">{"imports": {"three": "/static/vendor/three.module.js", "three/addons/": "/static/vendor/three/addons/"}}</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="loading" class="glass-solid" style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px"><div class="brand fs-3">AI METAVERSE</div><div class="small text-secondary" id="loadMsg">Loading world…</div></div>
+
+<nav class="topbar glass d-flex align-items-center gap-3 px-3">
+  <strong class="brand text-nowrap" id="worldName">AI Metaverse</strong>
+  <span class="chip" title="Active agents">🤖 <span id="agentCount">0</span> agents</span>
+  <span class="chip" id="ollamaChip" role="button" title="Click to re-check Ollama"><span class="dot"></span> <span id="ollamaText">Ollama…</span></span>
+  <span class="chip d-none d-md-inline">🌍 <span id="zoneChip">Aether City</span></span>
+  <span class="chip d-none d-md-inline" id="clockChip">🕒 <span id="clockText">—</span></span>
+  <span class="chip d-none d-md-inline">📍 <span id="locName">Main Plaza</span></span>
+  <span class="chip" id="aiBusy" hidden>⏳ AI thinking <span id="aiBusyN"></span></span>
+  <span class="ms-auto d-flex gap-2">
+    <button class="btn btn-sm btn-outline-light" id="govBtn" title="Government dashboards (finance, development, civilization)">🏛 Gov</button>
+    <button class="btn btn-sm btn-outline-light" id="obsBtn" title="Civilization Observer map">🛰 Obs</button>
+    <button class="btn btn-sm btn-warning" id="mapBtn" title="Global World Map (N)">🗺 Map</button>
+    <button class="btn btn-sm btn-outline-warning" id="returnBtn" title="Return to Aether City" hidden>↩ Aether</button>
+    <button class="btn btn-sm btn-outline-info" id="modeBtn" title="Toggle Explore / Observer (O)">Explore</button>
+    <button class="btn btn-sm btn-outline-light d-lg-none" id="togLeft">☰</button>
+    <button class="btn btn-sm btn-outline-light d-lg-none" id="togRight">💬</button>
+    <a class="btn btn-sm btn-outline-light" href="/admin" target="_blank">Admin</a>
+    <button class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#settingsModal">Settings</button>
+  </span>
+</nav>
+
+<aside class="panel left glass" id="leftPanel">
+  <ul class="nav nav-tabs nav-fill small">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabMap">Map</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabAgents">Agents</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabPlaces">Places</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabActivity">Activity</a></li>
+  </ul>
+  <div class="tab-content p-2">
+    <div class="tab-pane fade show active" id="tabMap"><canvas id="radar" width="220" height="220"></canvas>
+      <div class="small text-secondary mt-1">● you &nbsp; ● agents</div></div>
+    <div class="tab-pane fade" id="tabAgents"><div id="agentList" class="list"></div></div>
+    <div class="tab-pane fade" id="tabPlaces"><div id="placeList" class="list"></div></div>
+    <div class="tab-pane fade" id="tabActivity"><div id="eventList" class="list small"></div></div>
+  </div>
+</aside>
+
+<aside class="panel right glass" id="rightPanel" hidden>
+  <div class="d-flex align-items-start p-2 gap-2 border-bottom border-secondary">
+    <div class="flex-grow-1">
+      <div class="fw-bold fs-5" id="chName"></div>
+      <div class="small text-info" id="chRole"></div>
+      <div class="small text-secondary"><span id="chStatus"></span> · model <code id="chModel"></code></div>
+    </div>
+    <button class="btn-close btn-close-white" id="chClose" title="Close (continue walking)"></button>
+  </div>
+  <ul class="nav nav-tabs nav-fill small">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabChat">Conversation</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabInfo">Info / Task</a></li>
+  </ul>
+  <div class="tab-content flex-grow-1 d-flex flex-column" style="min-height:0">
+    <div class="tab-pane fade show active flex-grow-1 flex-column" id="tabChat" style="min-height:0">
+      <div id="chLog" class="chat-log"></div>
+      <div id="chThinking" class="small text-info px-3 pb-1" hidden>…thinking</div>
+      <form id="chForm" class="p-2 d-flex gap-2" autocomplete="off">
+        <input id="chInput" class="form-control form-control-sm" maxlength="2000" placeholder="Say something…">
+        <button class="btn btn-sm btn-info" id="chSend">Send</button>
+      </form>
+      <div class="px-2 pb-2 d-flex gap-2">
+        <button class="btn btn-sm btn-outline-light" id="chFollow">Follow me</button>
+        <button class="btn btn-sm btn-outline-light" id="chStop">Stop</button>
+      </div>
+    </div>
+    <div class="tab-pane fade p-3 small" id="tabInfo"><dl id="chInfo" class="mb-0"></dl></div>
+  </div>
+</aside>
+
+<div id="prompt" class="prompt glass" hidden></div>
+<div id="infoCard" class="info-card glass" hidden><div class="d-flex"><h6 id="infoTitle" class="m-0 flex-grow-1"></h6><button class="btn-close btn-close-white" id="infoClose"></button></div><p id="infoText" class="small mt-2 mb-0"></p></div>
+<div id="worldMap" class="worldmap" hidden>
+  <div class="d-flex align-items-center p-3 gap-3"><h4 class="brand m-0">GLOBAL WORLD MAP</h4><span class="small text-secondary">Choose a zone to travel to. Your position in each zone is saved.</span><button class="btn-close btn-close-white ms-auto" id="wmClose"></button></div>
+  <div class="wm-body"><div class="wm-map" id="wmPins"></div><div class="wm-cards" id="wmCards"></div></div>
+</div>
+<div id="clickHint" class="prompt glass">Click ground to walk · drag to look · WASD move (cancels route) · Shift run · Space jump · E talk/read · F vehicle · Z sit · X lie · V sleep · B dance · N world map · M mouse-look · O observer</div>
+
+<footer class="bottombar glass d-flex align-items-center gap-3 px-3">
+  <span class="small text-secondary d-none d-md-inline">Click=walk · Drag=look · WASD · E talk/read · N map · M mouse-look · O observer</span>
+  <span class="small ms-auto text-truncate" id="ticker">Welcome to the metaverse.</span>
+</footer>
+<div class="toast-container position-fixed" style="bottom:56px;left:50%;transform:translateX(-50%)" id="toasts"></div>
+
+<div class="modal fade" id="settingsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content glass-solid">
+    <div class="modal-header"><h5 class="modal-title">Settings</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" id="followClock" checked><label class="form-check-label" for="followClock">Day/night follows this zone's simulated clock</label></div>
+      <label class="form-label">Manual time of day: <span id="todLabel"></span> <small class="text-secondary">(moving it switches the clock off)</small></label>
+      <input type="range" class="form-range" id="todRange" min="0" max="24" step="0.25">
+      <label class="form-label mt-3">Mouse sensitivity</label>
+      <input type="range" class="form-range" id="sensRange" min="0.3" max="2.5" step="0.1" value="1">
+      <label class="form-label mt-3">Mode</label>
+      <div class="btn-group w-100"><button class="btn btn-outline-info" data-mode="explore">Explore</button><button class="btn btn-outline-info" data-mode="observer">Observer</button></div>
+      <label class="form-label mt-3">Graphics quality <small class="text-secondary">(reloads)</small></label>
+      <select id="qualitySel" class="form-select"><option value="high">High – shadows, bloom, reflections</option><option value="medium">Medium – shadows</option><option value="low">Low – no shadows</option><option value="fallback">Fallback – no models / maps</option></select>
+      <div class="small text-secondary mt-3">Observer: free camera (WASD + Space/C up/down) to watch agents work and talk.</div>
+    </div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="govModal" tabindex="-1" data-bs-theme="dark">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content glass-solid">
+    <div class="modal-header gap-2 flex-wrap"><h5 class="modal-title me-2" id="govTitle">Government</h5>
+      <div class="btn-group btn-group-sm" id="govZoneSwitch"></div>
+      <div class="input-group input-group-sm ms-auto w-auto"><span class="input-group-text">Admin token</span><input id="govToken" type="password" class="form-control" placeholder="for write actions"></div>
+      <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <ul class="nav nav-tabs nav-fill small mb-3" id="govTabs">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" data-tab="dash" href="#gDash">Government</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" data-tab="dev" href="#gDev">Development</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" data-tab="fin" href="#gFin">Finance</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" data-tab="civ" href="#gCiv">Civilization</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" data-tab="observer" href="#gObs">Observer map</a></li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="gDash"></div><div class="tab-pane fade" id="gDev"></div><div class="tab-pane fade" id="gFin"></div><div class="tab-pane fade" id="gCiv"></div>
+        <div class="tab-pane fade" id="gObs"><div class="d-flex flex-wrap gap-2 align-items-center mb-2"><div id="obsZones"></div><div id="obsClock" class="ms-auto"></div></div>
+          <div class="row g-2"><div class="col-lg-9"><canvas id="obsCanvas" class="w-100 border border-secondary rounded" height="540"></canvas></div>
+          <div class="col-lg-3"><div id="obsInfo"></div><div class="small text-secondary mt-3">Citizens leave for work from 06:00 local time, so the map and the 3D world change with the simulated clock. Construction sites show their progress bar.</div></div></div></div>
+      </div>
+    </div>
+  </div></div>
+</div>
+<script src="/static/vendor/jquery.min.js"></script>
+<script src="/static/vendor/bootstrap.bundle.min.js"></script>
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

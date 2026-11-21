@@ -66,3 +66,4 @@ An original alien-nature zone (zone id `pandora`, +-500 m): a colossal home tree
 - **Your own GLB buildings**: put them in `static/models/` and add e.g. `"buildings": {"hq": "/static/models/hq.glb"}` (keys: `hq`, `lab`, `library`, `meeting`). They are auto-fitted to the building footprint. Your own textures: replace the generators in `materials.js` (`M.asphalt` etc.) with `TextureLoader` maps.
 - Scale is metres: 1.8 m characters, 3.8 m floors, 6 m roads, walking 3.4 m/s, running 7 m/s.
 # metaverse-game
+# metaverse-game

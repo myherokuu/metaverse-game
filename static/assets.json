@@ -1,0 +1,5 @@
+{
+  "_comment": "Drop-in asset manifest. Paths are served from /static. Missing/failed entries silently fall back to procedural versions.",
+  "characters": { "agent": "/static/models/Xbot.glb", "player": "/static/models/Soldier.glb" },
+  "buildings": {}
+}
